@@ -1,0 +1,18 @@
+{
+  "name": "relay-model-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "中转 API 模型检测器 — 14 探针并发体检 OpenAI 兼容中转端点",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "mock": "node mock-upstream.mjs",
+    "selftest": "node scripts/selftest.mjs",
+    "audit": "node scripts/audit-public.mjs",
+    "publish:github": "node scripts/publish-github.mjs"
+  }
+}

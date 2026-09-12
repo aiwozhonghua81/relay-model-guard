@@ -1,0 +1,24 @@
+# 依赖（本项目零依赖，留着以防后续引入）
+node_modules/
+
+# 环境变量与密钥——绝对不要提交
+.env
+.env.*
+*.key
+*.pem
+*.p12
+
+# 本地产物：检测报告、截图、临时脚本，不要进仓库
+outputs/
+work/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

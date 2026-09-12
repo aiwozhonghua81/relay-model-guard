@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中转 API 模型检测器</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🛡️</span>
+    <div>
+      <h1>中转 API 模型检测器</h1>
+      <p>14 路探针并发体检 · 识别调包 / 偷工减料 / 隐藏指令 / 计费异常</p>
+    </div>
+  </div>
+  <div class="topbar-tags">
+    <span class="tag tag-safe">API Key 仅存内存</span>
+    <span class="tag">日志脱敏</span>
+    <span class="tag">不落盘</span>
+    <button type="button" class="tag tag-btn hidden" id="logout-btn">退出登录</button>
+  </div>
+</header>
+
+<main>
+  <section id="auth-panel" class="panel auth hidden">
+    <h2>需要访问令牌</h2>
+    <p class="hint">该实例以 <b>deploy-safe</b> 模式运行，请输入部署时设置的 <code>APP_TOKEN</code>。</p>
+    <div class="auth-row">
+      <input id="appToken" type="password" placeholder="APP_TOKEN" autocomplete="off">
+      <button type="button" class="primary" id="auth-btn">进入</button>
+    </div>
+    <p class="hint auth-error hidden" id="auth-error"></p>
+  </section>
+
+  <section class="panel form-panel">
+    <form id="detect-form" autocomplete="off">
+      <div class="field">
+        <label for="baseUrl">Base URL</label>
+        <input id="baseUrl" name="baseUrl" type="text" placeholder="https://api.example.com/v1" required>
+        <p class="hint">支持 /v1、/v1/、/v1/chat/completions 等写法，可自动归一化</p>
+      </div>
+      <div class="field">
+        <label for="apiKey">API Key</label>
+        <div class="key-wrap">
+          <input id="apiKey" name="apiKey" type="password" placeholder="粘贴你的 API Key" required>
+          <button type="button" id="toggle-key" class="ghost" aria-label="显示密钥">显示</button>
+        </div>
+        <p class="hint">仅用于本次检测的后端内存，探针结束即擦除</p>
+      </div>
+      <div class="field">
+        <label for="model">声称的模型名</label>
+        <input id="model" name="model" type="text" placeholder="gpt-4o-mini / deepseek-chat / claude-3-5-sonnet" required>
+        <p class="hint">用于与响应 model 字段、自述身份做交叉核对</p>
+      </div>
+      <div class="field">
+        <label for="tokenBudget">本次检测 Token 上限</label>
+        <input id="tokenBudget" name="tokenBudget" type="number" min="1000" step="1000" value="60000" required>
+        <p class="hint">累计用量达到上限立即中止全部探针并停止调用 API</p>
+        <p class="hint" id="estimate-line">正在计算整套检测的 token 预估…</p>
+        <div class="precheck hidden" id="precheck-box"></div>
+        <label class="checkbox-line">
+          <input type="checkbox" id="allowPartialRun">
+          <span>额度不足时仍运行（触顶即终止，报告标注为不完整）</span>
+        </label>
+        <details class="estimate-details hidden" id="estimate-details">
+          <summary>预估明细（按探针）</summary>
+          <ul id="estimate-list"></ul>
+        </details>
+      </div>
+      <div class="actions">
+        <button type="submit" id="start-btn" class="primary">开始检测</button>
+        <button type="button" id="reset-btn" class="ghost">重置</button>
+      </div>
+    </form>
+    <div class="presets">
+      <span>快速填充：</span>
+      <button type="button" class="chip" data-base="https://api.openai.com/v1" data-model="gpt-4o-mini">OpenAI</button>
+      <button type="button" class="chip" data-base="https://api.deepseek.com/v1" data-model="deepseek-chat">DeepSeek</button>
+      <button type="button" class="chip" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-model="qwen-plus">通义千问</button>
+      <button type="button" class="chip" data-base="https://api.moonshot.cn/v1" data-model="moonshot-v1-8k">Kimi</button>
+      <button type="button" class="chip" data-base="http://127.0.0.1:8788/v1" data-model="demo-model">本地演示桩</button>
+    </div>
+  </section>
+
+  <section id="error-box" class="panel error hidden" role="alert"></section>
+
+  <section id="overview" class="panel overview hidden">
+    <div class="gauge">
+      <div class="donut" id="donut"><span id="total-score">0</span><small>/10</small></div>
+      <div>
+        <div class="risk-label" id="risk-label">—</div>
+        <div class="risk-desc" id="risk-desc">等待检测</div>
+      </div>
+    </div>
+    <div class="progress-block">
+      <div class="progress-head">
+        <span id="progress-text">0 / 14 探针完成</span>
+        <span id="progress-time">—</span>
+      </div>
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="counts">
+        <span class="count pass">通过 <b id="count-pass">0</b></span>
+        <span class="count warn">警告 <b id="count-warn">0</b></span>
+        <span class="count fail">失败 <b id="count-fail">0</b></span>
+        <span class="count stop">终止/跳过 <b id="count-stop">0</b></span>
+      </div>
+      <div class="usage-head">
+        <span>Token 用量</span>
+        <span id="usage-text">0 / 60,000</span>
+      </div>
+      <div class="progress thin"><div class="progress-bar usage" id="usage-bar"></div></div>
+      <div class="target-line" id="target-line"></div>
+    </div>
+    <div class="export-block">
+      <button type="button" class="ghost" id="view-html" disabled>查看 HTML 报告</button>
+      <button type="button" class="ghost" id="export-html" disabled>导出 HTML</button>
+      <button type="button" class="ghost" id="export-json" disabled>导出 JSON</button>
+    </div>
+  </section>
+
+  <section id="budget-banner" class="panel banner hidden" role="status"></section>
+
+  <section id="findings" class="panel findings hidden">
+    <h2>需要关注的问题</h2>
+    <ul id="findings-list"></ul>
+  </section>
+
+  <section class="grid" id="grid" aria-live="polite"></section>
+
+  <footer class="foot">
+    <p>探针结果中「模型自述」「能力基准」属于概率性证据，建议结合业务场景人工复核。检测不修改任何远端配置，但会向目标端点发送真实请求并消耗其额度；请只检测你已获得授权的端点，并使用独立的测试密钥。</p>
+  </footer>
+</main>
+
+<template id="card-template">
+  <article class="card">
+    <header>
+      <span class="idx"></span>
+      <h3 class="name"></h3>
+      <span class="pill">等待中</span>
+    </header>
+    <div class="card-body">
+      <div class="card-row">
+        <div class="mini-donut"><span class="score-value">–</span></div>
+        <div class="card-meta">
+          <div class="weight"></div>
+          <div class="elapsed">耗时 —</div>
+        </div>
+      </div>
+      <p class="evidence">尚未执行</p>
+      <ul class="notes hidden"></ul>
+      <details class="raw hidden">
+        <summary>原始证据</summary>
+        <pre></pre>
+      </details>
+    </div>
+  </article>
+</template>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>
