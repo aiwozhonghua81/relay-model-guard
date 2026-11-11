@@ -1,4 +1,4 @@
-# 中转 API 模型检测器（Relay Model Guard）
+# 🇨🇳 中转 API 模型检测器（Relay Model Guard）
 
 给任意 OpenAI 兼容中转 / 代理端点做一次「体检」：填 `base_url`、`api_key`、声称的模型名，后端并发跑 14 个探针，每个探针给出 **0–10 分 + 状态 + 一句证据 + 耗时**，再按权重汇总总分与风险等级。前端卡片网格实时刷新，可展开看原始证据，最后导出 JSON / HTML 报告。
 
@@ -6,7 +6,7 @@
 
 > ⚠️ **使用前必读**：[免责声明](DISCLAIMER.md) —— 本工具会向目标端点发送真实请求、消耗其额度，并可能触发对方风控；请**只用于你已获得授权的端点**，并使用独立的测试密钥。
 
-## 运行
+## ▶️ 运行
 
 ```bash
 node server.mjs            # 或 npm start  → http://127.0.0.1:8787
@@ -25,7 +25,7 @@ npm run publish:github     # 一键建仓库并推送（需先安装并登录 gh
 - **诚实模式**：API Key 随便填（如 `demo-key`），模型 `gpt-4o-mini` → 总分通常 9 分以上。
 - **黑心模式**：API Key 或模型名里带 `shady`（如 `shady-demo-key`）→ 演示桩会同时作弊：调包成 `llama-3.1-8b-instruct`、隐藏系统提示词、忽略 `max_tokens`、越狱直接吐口令、错误堆栈泄露、上下文静默截断、吞掉 tool_calls、特殊 token 注入生效……总分掉到 4 分以下。
 
-## 14 个探针与权重
+## 📋 14 个探针与权重
 
 | # | 探针 | 权重 | 分组 | 检什么 |
 |---|------|------|------|--------|
@@ -46,7 +46,7 @@ npm run publish:github     # 一键建仓库并推送（需先安装并登录 gh
 
 总分 = Σ(权重 × 得分) / Σ(已执行权重)，10 分制。风险等级：≥9 极低 / ≥8 低 / ≥6.5 中等 / ≥5 较高 / ≥3 高 / <3 极高。
 
-## Token 预算保护（两道闸门）
+## 💰 Token 预算保护（两道闸门）
 
 检测一次要打 30 多次上游请求，最贵的「上下文截断」探针就占九成消耗，所以做了两层防护，避免把额度跑爆。
 
@@ -70,7 +70,7 @@ npm run publish:github     # 一键建仓库并推送（需先安装并登录 gh
 
 界面上的实时用量条会随 SSE 的 `usage` 事件刷新（`已用 / 上限`，并显示在途预留）；报告里也会带上本次用量的 `spent / limit / usedPercent`。
 
-## 接口
+## 🔌 接口
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -82,7 +82,7 @@ npm run publish:github     # 一键建仓库并推送（需先安装并登录 gh
 | `GET` | `/api/detect/:id/report.html` | HTML 报告（加 `?download=1` 变下载） |
 | `GET` | `/api/health` | 健康检查 |
 
-## 安全设计
+## 🛡️ 安全设计
 
 - **API Key 只走内存**：`run` 对象持有密钥，14 个探针跑完立刻置 `null`；进程不写任何数据库、文件、缓存。检测记录本身也只在内存里保留 30 分钟（`RUN_TTL_MS`），`SIGINT/SIGTERM` 时清空。
 - **日志脱敏**：所有控制台输出统一过 `safeLog()` → `redact()`，命中 `sk-*`、`Bearer *`、`api_key=`、长随机串等模式一律打码；只打印 Key 的不可逆指纹（8+8 hex）用于区分。
@@ -92,7 +92,7 @@ npm run publish:github     # 一键建仓库并推送（需先安装并登录 gh
 
 > ⚠️ 本工具会按你提供的 `base_url` 发起出站请求。**无鉴权时不要暴露到公网**（否则等于开放一个能读回响应的 SSRF 代理）。要放到服务器上，请用下面的 deploy-safe 模式。
 
-## 部署到服务器（deploy-safe 模式）
+## ☁️ 部署到服务器（deploy-safe 模式）
 
 本地模式（默认）没有鉴权、允许私网目标，只适合跑在自己机器上。要放到服务器/内网时用：
 
@@ -120,7 +120,7 @@ deploy-safe 开启后：
 
 > 已知边界：目标校验发生在发请求之前，理论上存在 DNS rebinding 的 TOCTOU 竞态窗口；deploy-safe 已用"鉴权 + 全局配额 + 逐跳校验"三层兜底。若面向不受信任的用户开放，请再配一层出站防火墙策略。
 
-## 可调参数（环境变量）
+## 🎛️ 可调参数（环境变量）
 
 | 变量 | 默认 | 说明 |
 |------|------|------|
@@ -141,31 +141,62 @@ deploy-safe 开启后：
 | `SESSION_TTL_MS` | `43200000` | 登录会话有效期（12 小时） |
 | `TRUST_PROXY` | `0` | 置于反向代理后时设为 `1`，按 `X-Forwarded-For` 限流 |
 
-## 结果怎么读
+## 📏 结果怎么读
 
 - **分数不是判决书**：`模型身份`、`模型调包`、`越狱抵抗` 依赖模型自述与行为，属概率性证据；`连通性`、`流完整性`、`错误泄露`、`工具篡改`、`钱包安全` 属确定性证据，优先级更高。
 - **单点异常先看证据**：每张卡片都能展开原始请求/响应（请求体、响应头、SSE 样本行、usage），先确认是不是自己的网络或模型名写错。
 - **常见组合**：`调包 + 身份冲突 + 指纹混浊` 一般意味着二次转售；`流完整 + 便宜但缓存命中` 常见于共享池；`Token 注入 + 访问日志异常` 说明网关做了裸文本拼接。
 
-## 目录结构
+## 🗂️ 目录结构
 
-```
-server.mjs               HTTP 服务：路由 / SSE / 内存态运行 / 报告下载
-lib/upstream.mjs         OpenAI 兼容调用层（含 429/5xx 重试、流式抓取、预算预占/结算）
-lib/budget.mjs           Token 预算闸门（预占/结算/触顶中止）+ token 估算
-lib/estimate.mjs         启动时干跑 14 个探针，算整套检测的 token 预估
-lib/ctx.mjs              探针上下文工厂（真实执行与干跑预估共用）
-lib/redact.mjs           脱敏与 Key 指纹
-lib/probes/infra.mjs     探针 1–9
-lib/probes/security.mjs  探针 10–14
-lib/probes/index.mjs     探针注册表 + 加权汇总 + 风险分级
-lib/report.mjs           JSON / HTML 报告
-public/                  前端（原生 ES 模块，无构建步骤）
-mock-upstream.mjs        本地假中转，诚实 / 黑心双模式
-scripts/selftest.mjs     端到端自测
+```text
+relay-model-guard/
+│
+├── server.mjs                  HTTP 服务：路由 / SSE / 内存态运行 / 报告下载
+│                               （你真正要启动的就是这一个文件）
+├── mock-upstream.mjs           本地假中转，诚实 / 黑心双模式（演练用）
+│
+├── lib/                        后端逻辑，分成一个个小模块
+│   ├── upstream.mjs            OpenAI 兼容调用层（429/5xx 重试、流式抓取、预算预占/结算）
+│   ├── budget.mjs              Token 预算闸门（预占 / 结算 / 触顶中止）+ token 估算
+│   ├── estimate.mjs            启动时干跑 14 个探针，算出整套检测大概要烧多少 token
+│   ├── ctx.mjs                 探针上下文工厂（真实执行与干跑预估共用同一套上下文）
+│   ├── redact.mjs              脱敏与 Key 指纹（日志里不出现明文密钥）
+│   ├── report.mjs              JSON / HTML 报告生成
+│   │
+│   └── probes/                 14 个探针本体
+│       ├── index.mjs           探针注册表 + 加权汇总 + 风险分级
+│       ├── infra.mjs           探针 1–9（连通性、延迟、流完整、调包、指纹……）
+│       └── security.mjs        探针 10–14（提示词提取、越狱、工具篡改、钱包安全……）
+│
+├── public/                     前端（原生 ES 模块，没有构建步骤，改完刷新就生效）
+│
+└── scripts/
+    └── selftest.mjs            端到端自测：起假上游 → 跑完整检测 → 断言结果
 ```
 
-## 已知边界
+下面这张图说清楚一次检测里，请求是怎么在几个模块之间流动的：
+
+```text
+   浏览器卡片网格
+        │  ① 填 base_url / api_key / 声称模型名，点「开始体检」
+        ▼
+   server.mjs ──② 先问 estimate.mjs：这套检测预计烧多少 token？
+        │            └─→ 超过你设的上限就直接拦下，一个请求都不发
+        │  ③ 并发 3 路（可调到 14）派发探针，中途带随机抖动
+        ▼
+   probes/index.mjs ──→ infra.mjs（探针 1–9）
+        │              └→ security.mjs（探针 10–14）
+        │  ④ 每个探针都经由 ctx.mjs 拿同一份上下文
+        ▼
+   upstream.mjs ──⑤ 真正打到目标中转端点（429/5xx 自动重试 2 次）
+        │            └─→ budget.mjs 实时预占 + 结算，触顶立刻中止剩余探针
+        │  ⑥ 边跑边把分数、证据、耗时推回前端（SSE 流式）
+        ▼
+   report.mjs ──⑦ 汇总成加权总分 + 风险等级，导出 JSON / HTML
+```
+
+## 🚧 已知边界
 
 - 只支持 OpenAI 兼容协议（`/chat/completions`、`/models`）；Anthropic 原生 `/v1/messages` 未适配。
 - 上下文探针会真的发送约 9k token 的长输入，会产生实际费用；改小 `LONG_CONTEXT_CHARS` 可降低成本。
