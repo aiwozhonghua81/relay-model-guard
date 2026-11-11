@@ -1,5 +1,24 @@
 # 🇨🇳 中转 API 模型检测器（Relay Model Guard）
 
+<!-- 徽章区开始 -->
+<p align="center">
+  <a href="https://github.com/aiwozhonghua81/relay-model-guard"><img alt="GitHub" src="https://img.shields.io/badge/GitHub-aiwozhonghua81-181717?style=flat-square&logo=github&logoColor=white"></a>
+  <img alt="最近提交" src="https://img.shields.io/github/last-commit/aiwozhonghua81/relay-model-guard?style=flat-square&label=%E6%9C%80%E8%BF%91%E6%8F%90%E4%BA%A4">
+  <img alt="主语言" src="https://img.shields.io/github/languages/top/aiwozhonghua81/relay-model-guard?style=flat-square&label=%E4%B8%BB%E8%AF%AD%E8%A8%80">
+  <img alt="星标" src="https://img.shields.io/github/stars/aiwozhonghua81/relay-model-guard?style=flat-square&label=%E6%98%9F%E6%A0%87">
+  <img alt="仓库体积" src="https://img.shields.io/github/repo-size/aiwozhonghua81/relay-model-guard?style=flat-square&label=%E4%BB%93%E5%BA%93%E4%BD%93%E7%A7%AF">
+  <img alt="许可证" src="https://img.shields.io/github/license/aiwozhonghua81/relay-model-guard?style=flat-square&label=%E8%AE%B8%E5%8F%AF%E8%AF%81">
+</p>
+<p align="center">
+  <img alt="中文说明" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87%E8%AF%B4%E6%98%8E-%E5%B7%B2%E5%AE%8C%E6%95%B4%E8%A6%86%E7%9B%96-brightgreen?style=flat-square">
+  <img alt="给新手看" src="https://img.shields.io/badge/%E7%BB%99%E6%96%B0%E6%89%8B%E7%9C%8B-%E4%B8%8D%E7%94%A8%E6%87%82%E4%BB%A3%E7%A0%81-blue?style=flat-square">
+  <img alt="配图" src="https://img.shields.io/badge/%E9%85%8D%E5%9B%BE-%E5%AE%9E%E6%8B%8D%E6%88%AA%E5%9B%BE%E4%B8%8E%E5%A4%B4%E5%9B%BE-ff69b4?style=flat-square">
+</p>
+<p align="center">
+  <img src="docs/images/01-result-overview.jpg" alt="relay-model-guard 头图" width="880">
+</p>
+<!-- 徽章区结束 -->
+
 给任意 OpenAI 兼容中转 / 代理端点做一次「体检」：填 `base_url`、`api_key`、声称的模型名，后端并发跑 14 个探针，每个探针给出 **0–10 分 + 状态 + 一句证据 + 耗时**，再按权重汇总总分与风险等级。前端卡片网格实时刷新，可展开看原始证据，最后导出 JSON / HTML 报告。
 
 > 📖 **产品介绍、界面说明、结果解读、API 用法、FAQ** → [docs/GUIDE.md](docs/GUIDE.md)
@@ -204,3 +223,26 @@ relay-model-guard/
 - 探针并发默认 3（可调到 14）+ 抖动，仍可能触发严格限流的中转；遇到 429 会自动重试 2 次。
 - **预估偏保守**：预估值按「每个分支都真的发出请求」的最坏剧本统计（含 `/models` 失败时的补 ping、`stream_options` 不被支持时的重试等），且中文按 0.8 token/字估算，通常高于实际消耗（实测诚实端点约 1 万 token，预估约 3 万）。它的职责是拦住「明显会跑爆额度」的提交，真实消耗以运行时闸门结算的 `spent` 为准。
 - **预估依赖探针实现**：预估值由干跑产生，改了探针提示词/长度会自动跟着变，不需要维护常量表；若某次运行中端点触发额外的重试/重放，实际消耗可能超过预估，这种情况由运行时闸门兜底。
+
+## 🖼️ 界面截图一览
+下面这些图都是**这个仓库里原本就带的真实截图**，不是画的示意图：
+
+**① 检测结果总览**
+
+<img src="docs/images/01-result-overview.jpg" alt="检测结果总览" width="820">
+
+**② 展开看原始证据**
+
+<img src="docs/images/02-raw-evidence.jpg" alt="展开看原始证据" width="820">
+
+**③ 预算预检拦截**
+
+<img src="docs/images/03-precheck-block.jpg" alt="预算预检拦截" width="820">
+
+**④ 导出的 HTML 报告**
+
+<img src="docs/images/04-html-report.jpg" alt="导出的 HTML 报告" width="820">
+
+**⑤ 部署安全模式登录**
+
+<img src="docs/images/05-deploy-safe-login.jpg" alt="部署安全模式登录" width="820">
